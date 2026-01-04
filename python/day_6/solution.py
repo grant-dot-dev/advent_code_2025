@@ -1,71 +1,101 @@
-import os
-from typing import List
-def get_file_path(is_dev=True):
-    base = os.path.dirname(os.path.abspath(__file__))
-    filename = "example.txt" if is_dev else "input.txt"
-    file_path = os.path.join(base, filename)
-    return file_path
+import time
 
-
-file_path = get_file_path(False)
-
-def read_file():
-    try:
-        with open(file_path, "r") as f:
-            lines = [line.strip() for line in f.readlines()]
-            
-            # Separate numeric lines from operator lines
-            numeric_lines = []
-            operator_lines = []
-            
-            for line in lines:
-                if any(char.isdigit() for char in line):
-                    numeric_lines.append(line)
-                else:
-                    operator_lines.append(line)
-            
-            # Parse columns from numeric lines
-            columns = [list(map(int, col)) for col in zip(*(line.split() for line in numeric_lines))]
-            
-            operators = operator_lines[0].split() if operator_lines else []
-            
-            return columns, operators
-    except FileNotFoundError:
-        print(f"File '{file_path}' not found.")
-        return [], []
-    except ValueError as e:
-        print(f"Error parsing file: {e}")
-        return [], []
- 
-columns, operators = read_file()
-
-def apply_operator(grand_total, op:str, column:List[int]):
-    if op == '+':
-        grand_total += sum(column)
-    elif op == '-':
-        grand_total += column[0] - sum(column[1:])
-    elif op == '*':
-        prod = 1
-        for num in column:
-            prod *= num
-        grand_total += prod
-    elif op == '/':
-        result = column[0]
-        for num in column[1:]:
-            if num == 0:
-                print("Division by zero encountered.")
-                result = 0
-                break
-            result /= num
-        grand_total += result
+def read_file() -> list:
+    """Read input file and parse into a table structure."""
+    table = []
     
-    return grand_total  # Add this!
+    with open("input.txt", "r") as file:
+        for i, line in enumerate(file):
+            data = line.strip().split()
+            
+            for j, element in enumerate(data):
+                if i == 0:
+                    table.append([])
+                
+                # Convert to int if not an operator
+                value = element if element in ["+", "*"] else int(element)
+                table[j].append(value)
+    
+    return table
 
-def part_1():
-    grand_total = 0
-    for idx, column in enumerate(columns):
-        new_total = apply_operator(grand_total, operators[idx],column)
-        grand_total = new_total
-    return grand_total
+def part1_func(table: list) -> int:
+    """Calculate sum based on column operations."""
+    total = 0
+    
+    for column in table: 
+        operator = column[-1]
+        numbers = [x for x in column if x not in ["+", "*"]]
+        
+        if operator == "*":
+            product = 1
+            for num in numbers:
+                product *= num
+            total += product
+        else:   # operator == "+"
+            total += sum(numbers)
+    
+    return total
 
-print(part_1())
+def part2_func() -> int:
+    """Calculate sum with character-by-character processing."""
+    total = 0
+    table = []
+    
+    with open("input.txt", "r") as file:
+        lines = file.readlines()
+        
+        # Build the table (all lines except the last)
+        for line in lines[:-1]:
+            for i, char in enumerate(line):
+                if len(table) <= i:
+                    table.append([])
+                table[i]. append(char)
+        
+        # Process the final line
+        operator_line = lines[-1]
+        is_add = True
+        product = 0
+        
+        for i, char in enumerate(operator_line):
+            if char == "+":
+                if not is_add:
+                    total += product
+                is_add = True
+            elif char == "*":
+                if not is_add:
+                    total += product
+                is_add = False
+                product = 1
+            
+            if is_add and char != "\n":
+                # Extract number from column
+                num_str = "".join(digit for digit in table[i] if digit != " ")
+                if num_str:
+                    total += int(num_str)
+            elif char != "\n":
+                # Extract number from column
+                num_str = "".join(digit for digit in table[i] if digit != " ")
+                if num_str: 
+                    product *= int(num_str)
+        
+        # Add final product if we were multiplying
+        if not is_add:
+            total += product
+    
+    return total
+
+def main():
+    start_time = time.perf_counter()
+    
+    table = read_file()
+    part1 = part1_func(table)
+    part2 = part2_func()
+    
+    end_time = time.perf_counter()
+    
+    print(f"Part 1: {part1}")
+    print(f"Part 2: {part2}")
+    print(f"Solution time:  {end_time - start_time}")
+
+if __name__ == "__main__":
+    main()
